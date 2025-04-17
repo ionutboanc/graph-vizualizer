@@ -32,7 +32,9 @@ class NetworkFlowApp(tk.Tk):
         ttk.Button(controls_frame, text='Generic', command=self.calculate_generic).pack(side=tk.LEFT, padx=5)
         ttk.Button(controls_frame, text='Ford-Fulkerson', command=self.calculate_ford_fulkerson).pack(side=tk.LEFT, padx=5)
         ttk.Button(controls_frame, text='Edmonds-Karp', command=self.calculate_edmonds_karp).pack(side=tk.LEFT, padx=5)
-        
+        ttk.Button(controls_frame, text='Ahuja-Orlin', command=self.calculate_ahuja_orlin).pack(side=tk.LEFT, padx=5)
+        ttk.Button(controls_frame, text='Gabow', command=self.calculate_gabow).pack(side=tk.LEFT, padx=5)
+
         self.status_var = tk.StringVar()
         self.status_var.set('Ready')
         status_bar = ttk.Label(self, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
@@ -62,16 +64,24 @@ class NetworkFlowApp(tk.Tk):
     
     def calculate_generic(self):
         flow = self.canvas.calculate_generic()
-        self.status_var.set(f"Maximum Flow (Generic): {flow}")
+        self.status_var.set(f"Generic: {flow}")
     
     def calculate_ford_fulkerson(self):
         flow = self.canvas.calculate_ford_fulkerson()
-        self.status_var.set(f"Maximum Flow (Ford-Fulkerson): {flow}")
+        self.status_var.set(f"Ford-Fulkerson: {flow}")
 
     def calculate_edmonds_karp(self):
         flow = self.canvas.calculate_edmonds_karp()
-        self.status_var.set(f"Maximum Flow (Edmonds-Karp): {flow}")
+        self.status_var.set(f"Edmonds-Karp: {flow}")
 
+    def calculate_ahuja_orlin(self):
+        flow = self.canvas.calculate_ahuja_orlin()
+        self.status_var.set(f"Ahuja-Orlin: {flow}")
+
+    def calculate_gabow(self):
+        flow = self.canvas.calculate_gabow()
+        self.status_var.set(f"Gabow: {flow}")
+        
 if __name__ == '__main__':
     app = NetworkFlowApp()
     app.mainloop()

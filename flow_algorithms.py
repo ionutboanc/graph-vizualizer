@@ -1,5 +1,6 @@
 from collections import deque
 import random
+import math
 
 class Graph:
     def __init__(self):
@@ -197,3 +198,186 @@ def edmonds_karp(graph, source, sink, callback=None):
             callback(flow_graph, path, path_flow)
     
     return max_flow, flow_graph
+
+def ahuja_orlin(graph, source, sink, callback=None):
+
+    flow_graph = Graph()
+    for u in graph.edges:
+        for v in graph.edges[u]:
+            flow_graph.add_edge(u, v, graph.edges[u][v]['capacity'])
+    
+    max_capacity = 0
+    for u in flow_graph.edges:
+        for v in flow_graph.edges[u]:
+            max_capacity = max(max_capacity, flow_graph.edges[u][v]['capacity'])
+    
+    r = 2 ** math.floor(math.log(max_capacity, 2))
+    
+    max_flow = 0
+    
+    while r >= 1:
+        while True:
+            parent = {source: None}
+            queue = deque([source])
+            
+            while queue and sink not in parent:
+                u = queue.popleft()
+                for v in flow_graph.edges[u]:
+                    if v not in parent and flow_graph.get_residual_capacity(u, v) >= r:
+                        parent[v] = u
+                        queue.append(v)
+            
+            if sink not in parent:
+                break
+            
+            if callback:
+                path = []
+                v = sink
+                while v is not None:
+                    path.append(v)
+                    v = parent.get(v)
+                path.reverse()
+            
+            v = sink
+            path_flow = float('inf')
+            while v != source:
+                u = parent[v]
+                path_flow = min(path_flow, flow_graph.get_residual_capacity(u, v))
+                v = u
+            
+            v = sink
+            while v != source:
+                u = parent[v]
+                flow_graph.augment_flow(u, v, path_flow)
+                v = u
+            
+            max_flow += path_flow
+            
+            if callback and 'path' in locals():
+                callback(flow_graph, path, path_flow)
+        
+        r //= 2
+    
+    return max_flow, flow_graph
+
+def gabow(graph, source, sink, callback=None):
+    original_graph = Graph()
+    for u in graph.edges:
+        for v in graph.edges[u]:
+            original_graph.add_edge(u, v, graph.edges[u][v]['capacity'])
+    
+    scaled_graphs = [original_graph]
+    
+    if callback:
+        callback(original_graph, [], 0)
+    
+    k = 0
+    max_flow = 0
+    while True:
+        next_graph = Graph()
+        current_graph = scaled_graphs[k]
+        has_augmenting_paths = False
+        
+        for u in current_graph.edges:
+            for v in current_graph.edges[u]:
+                capacity = current_graph.edges[u][v]['capacity']
+                if capacity > 0:
+                    next_capacity = capacity // 2
+                    next_graph.add_edge(u, v, next_capacity)
+                    if next_capacity > 0:
+                        has_augmenting_paths = True
+    
+        
+        if not has_augmenting_paths:
+            break
+            
+        scaled_graphs.append(next_graph)
+        k += 1
+        
+        if callback:
+            callback(next_graph, [], 0)
+    
+    flow_solution = Graph()
+    for node in graph.nodes:
+        flow_solution.add_node(node)
+    
+    while k >= 0:
+        current_graph = scaled_graphs[k]
+        flow_graph = Graph()
+        
+        for node in current_graph.nodes:
+            flow_graph.add_node(node)
+            
+        for u in current_graph.edges:
+            for v in current_graph.edges[u]:
+                flow_graph.add_edge(u, v, current_graph.edges[u][v]['capacity'])
+        
+        if callback:
+            callback(flow_graph, [], 0)
+        
+        if k < len(scaled_graphs) - 1:
+            for u in flow_solution.edges:
+                for v in flow_solution.edges[u]:
+                    if flow_solution.edges[u][v]['flow'] > 0:
+                        doubled_flow = flow_solution.edges[u][v]['flow'] * 2
+                        if doubled_flow <= flow_graph.edges[u][v]['capacity']:
+                            flow_graph.edges[u][v]['flow'] = doubled_flow
+            
+            if callback:
+                callback(flow_graph, [], 0)
+        
+        while True:
+            path = [source]
+            visited = {source}
+            current = source
+            found_path = False
+            
+            while current != sink:
+                valid_neighbors = [v for v in flow_graph.edges[current] 
+                                 if v not in visited and flow_graph.get_residual_capacity(current, v) > 0]
+                
+                if not valid_neighbors:
+                    if len(path) > 1:
+                        visited.add(current)
+                        path.pop()
+                        current = path[-1]
+                        continue
+                    else:
+                        break
+                
+                next_node = random.choice(valid_neighbors)
+                path.append(next_node)
+                visited.add(next_node)
+                current = next_node
+                
+                if current == sink:
+                    found_path = True
+                    break
+            
+            if not found_path:
+                break
+
+            path_flow = float('inf')
+            for i in range(len(path) - 1):
+                u, v = path[i], path[i+1]
+                path_flow = min(path_flow, flow_graph.get_residual_capacity(u, v))
+            
+            for i in range(len(path) - 1):
+                u, v = path[i], path[i+1]
+                flow_graph.augment_flow(u, v, path_flow)
+            
+            if callback:
+                callback(flow_graph, path, path_flow)
+                
+            max_flow += path_flow * 2 ** k
+        
+        if callback:
+            callback(flow_graph, [], 0)
+        
+        flow_solution = flow_graph
+        k -= 1
+    
+    if callback:
+        callback(flow_solution, [], 0)
+    
+    return max_flow, flow_solution

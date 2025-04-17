@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import messagebox
 from node import Node
 from edge import Edge
-from flow_algorithms import Graph, edmonds_karp, ford_fulkerson, generic_flow_algorithm
+from flow_algorithms import Graph, edmonds_karp, ford_fulkerson, generic_flow_algorithm, ahuja_orlin, gabow
 
 class NetworkFlowCanvas(tk.Canvas):
     def __init__(self, parent, *args, **kwargs):
@@ -245,6 +245,107 @@ class NetworkFlowCanvas(tk.Canvas):
                                 self.edges[(u, v)].set_color("black", 1)
                 
                 max_flow, _ = edmonds_karp(
+                    self.G, 
+                    self.source_node.node_id,
+                    self.sink_node.node_id,
+                    update_visualization
+                )
+                
+                return max_flow
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Error calculating flow: {e}")
+        
+        return 0
+    
+    # Add this method to the NetworkFlowCanvas class
+    def calculate_ahuja_orlin(self):
+        if self.source_node is not None and self.sink_node is not None:
+            try:
+                for edge in self.edges.values():
+                    edge.flow = 0
+                    edge.update_label()
+                    edge.set_color("black", 1)
+                
+                def update_visualization(flow_graph, path, path_flow):
+                    for edge in self.edges.values():
+                        edge.set_color("black", 1)
+                    
+                    for (u, v), edge in self.edges.items():
+                        if u in flow_graph.edges and v in flow_graph.edges[u]:
+                            edge.flow = flow_graph.edges[u][v]['flow']
+                            edge.capacity = flow_graph.edges[u][v]['capacity']
+                            edge.update_label(show_flow=True)
+                            
+                            if edge.flow == edge.capacity and edge.capacity > 0:
+                                edge.set_color("gray", 0.5)
+                    
+                    if path and len(path) > 1:
+                        for i in range(len(path) - 1):
+                            u, v = path[i], path[i+1]
+                            if (u, v) in self.edges:
+                                self.edges[(u, v)].set_color("#FF00FF", 3)
+                    
+                    self.update()
+                    self.after(10000)
+                    
+                    if path and len(path) > 1:
+                        for i in range(len(path) - 1):
+                            u, v = path[i], path[i+1]
+                            if (u, v) in self.edges:
+                                self.edges[(u, v)].set_color("black", 1)
+                
+                max_flow, _ = ahuja_orlin(
+                    self.G, 
+                    self.source_node.node_id,
+                    self.sink_node.node_id,
+                    update_visualization
+                )
+                
+                return max_flow
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Error calculating flow: {e}")
+        
+        return 0
+    
+    def calculate_gabow(self):
+        if self.source_node is not None and self.sink_node is not None:
+            try:
+                for edge in self.edges.values():
+                    edge.flow = 0
+                    edge.update_label()
+                    edge.set_color("black", 1)
+                
+                def update_visualization(flow_graph, path, path_flow):
+                    for edge in self.edges.values():
+                        edge.set_color("black", 1)
+                    
+                    for (u, v), edge in self.edges.items():
+                        if u in flow_graph.edges and v in flow_graph.edges[u]:
+                            edge.flow = flow_graph.edges[u][v]['flow']
+                            edge.capacity = flow_graph.edges[u][v]['capacity']
+                            edge.update_label(show_flow=True)
+                            
+                            if edge.flow == edge.capacity and edge.capacity > 0:
+                                edge.set_color("gray", 0.5)
+                    
+                    if path and len(path) > 1:
+                        for i in range(len(path) - 1):
+                            u, v = path[i], path[i+1]
+                            if (u, v) in self.edges:
+                                self.edges[(u, v)].set_color("#FF00FF", 3)
+                    
+                    self.update()
+                    self.after(10000)
+                    
+                    if path and len(path) > 1:
+                        for i in range(len(path) - 1):
+                            u, v = path[i], path[i+1]
+                            if (u, v) in self.edges:
+                                self.edges[(u, v)].set_color("black", 1)
+                
+                max_flow, _ = gabow(
                     self.G, 
                     self.source_node.node_id,
                     self.sink_node.node_id,
