@@ -381,3 +381,182 @@ def gabow(graph, source, sink, callback=None):
         callback(flow_solution, [], 0)
     
     return max_flow, flow_solution
+
+
+def compute_distance_labels(flow_graph, sink, n):
+
+    distance = {}
+    for node in flow_graph.nodes:
+        distance[node] = n
+    distance[sink] = 0
+    
+    queue = deque([sink])
+    while queue:
+        v = queue.popleft()
+        for u in flow_graph.nodes:
+            if v in flow_graph.edges[u] and flow_graph.get_residual_capacity(u, v) > 0:
+                if distance[u] == n:
+                    distance[u] = distance[v] + 1
+                    queue.append(u)
+    
+    return distance
+
+def ahuja_orlin_shortest_path(graph, source, sink, callback=None):
+
+    flow_graph = Graph()
+    for u in graph.edges:
+        for v in graph.edges[u]:
+            flow_graph.add_edge(u, v, graph.edges[u][v]['capacity'])
+    
+    f = 0
+    n = len(flow_graph.nodes)
+    
+    distance = compute_distance_labels(flow_graph, sink, n)
+    
+    if callback:
+        callback(flow_graph, [], 0, distance)
+    
+    predecessor = {}
+    
+    x = source
+    
+    while distance[source] < n:
+        admissible_found = False
+        
+        for next_node in flow_graph.edges[x]:
+            if (flow_graph.get_residual_capacity(x, next_node) > 0 and 
+                distance[x] == distance[next_node] + 1):
+                # INAINTARE
+                predecessor[next_node] = x
+                x = next_node
+                admissible_found = True
+                
+
+                if x == sink:
+                    # MARIRE
+                    path = []
+                    node = sink
+                    while node != source:
+                        path.append(node)
+                        node = predecessor[node]
+                    path.append(source)
+                    path.reverse()
+                    
+                    path_flow = float('inf')
+                    for i in range(len(path) - 1):
+                        u, v = path[i], path[i+1]
+                        path_flow = min(path_flow, flow_graph.get_residual_capacity(u, v))
+                    
+                    for i in range(len(path) - 1):
+                        u, v = path[i], path[i+1]
+                        flow_graph.augment_flow(u, v, path_flow)
+                    
+                    f += path_flow
+                    
+                    if callback:
+                        callback(flow_graph, path, path_flow)
+                    
+                    distance = compute_distance_labels(flow_graph, sink, n)
+                    
+                    if callback:
+                        callback(flow_graph, [], 0, distance)
+                    
+                    x = source
+                
+                break
+        
+        if not admissible_found:
+            # INAPOIERE
+            min_dist = n
+            for next_node in flow_graph.edges[x]:
+                if flow_graph.get_residual_capacity(x, next_node) > 0:
+                    min_dist = min(min_dist, distance[next_node] + 1)
+
+            if callback:
+                callback(flow_graph, [], 0, distance)
+            
+            if x != source:
+                x = predecessor[x]
+    
+    return f, flow_graph
+
+def ahuja_orlin_stratified(graph, source, sink, callback=None):
+    flow_graph = Graph()
+    for u in graph.edges:
+        for v in graph.edges[u]:
+            flow_graph.add_edge(u, v, graph.edges[u][v]['capacity'])
+    
+    f = 0
+    n = len(flow_graph.nodes)
+    
+    distance = compute_distance_labels(flow_graph, sink, n)
+    
+    if callback:
+        callback(flow_graph, [], 0, distance)
+    
+    B = {node: 1 for node in flow_graph.nodes}
+    
+    predecessor = {}
+    
+    x = source
+    
+    while distance[source] < n:
+        if B[source] == 1:
+            admissible_found = False
+            
+            for y in flow_graph.edges[x]:
+                if (flow_graph.get_residual_capacity(x, y) > 0 and 
+                    distance[x] == distance[y] + 1 and 
+                    B[y] == 1):
+                    
+                    # INAINTARE
+                    predecessor[y] = x
+                    x = y
+                    admissible_found = True
+                    
+                    if x == sink:
+                        # MARIRE
+                        path = []
+                        node = sink
+                        while node != source:
+                            path.append(node)
+                            node = predecessor[node]
+                        path.append(source)
+                        path.reverse()
+                        
+                        path_flow = float('inf')
+                        for i in range(len(path) - 1):
+                            u, v = path[i], path[i+1]
+                            path_flow = min(path_flow, flow_graph.get_residual_capacity(u, v))
+                        
+                        for i in range(len(path) - 1):
+                            u, v = path[i], path[i+1]
+                            flow_graph.augment_flow(u, v, path_flow)
+                        
+                        f += path_flow
+                        
+                        if callback:
+                            callback(flow_graph, path, path_flow, distance)
+                        
+                        x = source
+                    
+                    break
+            
+            if not admissible_found:
+                # INAPOIERE
+                B[x] = 0
+                
+                if callback:
+                    callback(flow_graph, [], 0, distance, B)
+                
+                if x != source:
+                    x = predecessor[x]
+        else:
+            distance = compute_distance_labels(flow_graph, sink, n)
+            B = {node: 1 for node in flow_graph.nodes}
+            x = source
+            
+            if callback:
+                callback(flow_graph, [], 0, distance, B)
+    
+    return f, flow_graph

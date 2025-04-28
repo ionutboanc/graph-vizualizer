@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import messagebox
 from node import Node
 from edge import Edge
-from flow_algorithms import Graph, edmonds_karp, ford_fulkerson, generic_flow_algorithm, ahuja_orlin, gabow
+from flow_algorithms import Graph, edmonds_karp, ford_fulkerson, generic_flow_algorithm, ahuja_orlin, gabow, ahuja_orlin_shortest_path, ahuja_orlin_stratified
 
 class NetworkFlowCanvas(tk.Canvas):
     def __init__(self, parent, *args, **kwargs):
@@ -346,6 +346,128 @@ class NetworkFlowCanvas(tk.Canvas):
                                 self.edges[(u, v)].set_color("black", 1)
                 
                 max_flow, _ = gabow(
+                    self.G, 
+                    self.source_node.node_id,
+                    self.sink_node.node_id,
+                    update_visualization
+                )
+                
+                return max_flow
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Error calculating flow: {e}")
+        
+        return 0
+    
+
+    def calculate_ahuja_orlin_shortest_path(self):
+        if self.source_node is not None and self.sink_node is not None:
+            try:
+                for node_id, node in self.nodes.items():
+                    node.set_distance(None)
+                    
+                for edge in self.edges.values():
+                    edge.flow = 0
+                    edge.update_label()
+                    edge.set_color("black", 1)
+                
+                def update_visualization(flow_graph, path, path_flow, distance=None):
+                    
+                    for edge in self.edges.values():
+                        edge.set_color("black", 1)
+                    
+                    for (u, v), edge in self.edges.items():
+                        if u in flow_graph.edges and v in flow_graph.edges[u]:
+                            edge.flow = flow_graph.edges[u][v]['flow']
+                            edge.capacity = flow_graph.edges[u][v]['capacity']
+                            edge.update_label(show_flow=True)
+                            
+                            if edge.flow == edge.capacity and edge.capacity > 0:
+                                edge.set_color("gray", 0.5)
+                    
+                    if distance:
+                        for node_id, dist in distance.items():
+                            if node_id in self.nodes:
+                                self.nodes[node_id].set_distance(dist)
+                    
+                    if path and len(path) > 1:
+                        for i in range(len(path) - 1):
+                            u, v = path[i], path[i+1]
+                            if (u, v) in self.edges:
+                                self.edges[(u, v)].set_color("#FF00FF", 3)
+                    
+                    self.update()
+                    self.after(7000)
+                    
+                    if path and len(path) > 1:
+                        for i in range(len(path) - 1):
+                            u, v = path[i], path[i+1]
+                            if (u, v) in self.edges:
+                                self.edges[(u, v)].set_color("black", 1)
+                
+                max_flow, _ = ahuja_orlin_shortest_path(
+                    self.G, 
+                    self.source_node.node_id,
+                    self.sink_node.node_id,
+                    lambda flow_graph, path, path_flow, dist=None: update_visualization(flow_graph, path, path_flow, distance=dist)
+                )
+                
+                return max_flow
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Error calculating flow: {e}")
+        
+        return 0
+    
+    def calculate_ahuja_orlin_stratified(self):
+        if self.source_node is not None and self.sink_node is not None:
+            try:
+                for edge in self.edges.values():
+                    edge.flow = 0
+                    edge.update_label()
+                    edge.set_color("black", 1)
+                
+                for node_id, node in self.nodes.items():
+                    node.set_distance(None)
+                
+                def update_visualization(flow_graph, path, path_flow, distance=None, valid=None):
+                    for edge in self.edges.values():
+                        edge.set_color("black", 1)
+                    
+                    for (u, v), edge in self.edges.items():
+                        if u in flow_graph.edges and v in flow_graph.edges[u]:
+                            edge.flow = flow_graph.edges[u][v]['flow']
+                            edge.capacity = flow_graph.edges[u][v]['capacity']
+                            edge.update_label(show_flow=True)
+                            
+                            if edge.flow == edge.capacity and edge.capacity > 0:
+                                edge.set_color("gray", 0.5)
+                    
+                    if distance:
+                        for node_id, dist in distance.items():
+                            if node_id in self.nodes:
+                                if valid and node_id in valid:
+                                    label = f"{dist}" + (" B:1" if valid[node_id] == 1 else " B:0")
+                                    self.nodes[node_id].set_distance(label)
+                                else:
+                                    self.nodes[node_id].set_distance(f"{dist}")
+                    
+                    if path and len(path) > 1:
+                        for i in range(len(path) - 1):
+                            u, v = path[i], path[i+1]
+                            if (u, v) in self.edges:
+                                self.edges[(u, v)].set_color("#FF00FF", 3)
+                    
+                    self.update()
+                    self.after(7000)
+                    
+                    if path and len(path) > 1:
+                        for i in range(len(path) - 1):
+                            u, v = path[i], path[i+1]
+                            if (u, v) in self.edges:
+                                self.edges[(u, v)].set_color("black", 1)
+                
+                max_flow, _ = ahuja_orlin_stratified(
                     self.G, 
                     self.source_node.node_id,
                     self.sink_node.node_id,

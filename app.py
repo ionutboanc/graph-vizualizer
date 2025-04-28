@@ -6,7 +6,7 @@ class NetworkFlowApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title('Network Flow Visualization')
-        self.geometry('1000x600')
+        self.geometry('1200x600')
         
         main_frame = ttk.Frame(self)
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -30,10 +30,12 @@ class NetworkFlowApp(tk.Tk):
         ttk.Button(controls_frame, text='Set Source', command=self.set_as_source).pack(side=tk.LEFT, padx=5)
         ttk.Button(controls_frame, text='Set Sink', command=self.set_as_sink).pack(side=tk.LEFT, padx=5)
         ttk.Button(controls_frame, text='Generic', command=self.calculate_generic).pack(side=tk.LEFT, padx=5)
-        ttk.Button(controls_frame, text='Ford-Fulkerson', command=self.calculate_ford_fulkerson).pack(side=tk.LEFT, padx=5)
-        ttk.Button(controls_frame, text='Edmonds-Karp', command=self.calculate_edmonds_karp).pack(side=tk.LEFT, padx=5)
-        ttk.Button(controls_frame, text='Ahuja-Orlin', command=self.calculate_ahuja_orlin).pack(side=tk.LEFT, padx=5)
+        ttk.Button(controls_frame, text='FF', command=self.calculate_ford_fulkerson).pack(side=tk.LEFT, padx=3)
+        ttk.Button(controls_frame, text='EK', command=self.calculate_edmonds_karp).pack(side=tk.LEFT, padx=3)
+        ttk.Button(controls_frame, text='AO', command=self.calculate_ahuja_orlin).pack(side=tk.LEFT, padx=3)
         ttk.Button(controls_frame, text='Gabow', command=self.calculate_gabow).pack(side=tk.LEFT, padx=5)
+        ttk.Button(controls_frame, text='AODS', command=self.calculate_ahuja_orlin_shortest_path).pack(side=tk.LEFT, padx=5)
+        ttk.Button(controls_frame, text='AORS', command=self.calculate_ahuja_orlin_stratified).pack(side=tk.LEFT, padx=5)
 
         self.status_var = tk.StringVar()
         self.status_var.set('Ready')
@@ -81,6 +83,14 @@ class NetworkFlowApp(tk.Tk):
     def calculate_gabow(self):
         flow = self.canvas.calculate_gabow()
         self.status_var.set(f"Gabow: {flow}")
+
+    def calculate_ahuja_orlin_shortest_path(self):
+        flow = self.canvas.calculate_ahuja_orlin_shortest_path()
+        self.status_var.set(f"AODS: {flow}")
+
+    def calculate_ahuja_orlin_stratified(self):
+        flow = self.canvas.calculate_ahuja_orlin_stratified()
+        self.status_var.set(f"AORS: {flow}")
         
 if __name__ == '__main__':
     app = NetworkFlowApp()
